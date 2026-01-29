@@ -1,90 +1,67 @@
-import { authService } from '@/services/authService';
-import { LoginRequest, RegisterRequest, User } from '@/services/types';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, ReactNode, useContext, useEffect, useState } from 'react';
+import { UserSessionData } from '@/services/storageService';
+import { LoginRequest, RegisterRequest } from '@/services/types';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import {
+  loginUser,
+  logoutUser,
+  registerUser,
+  updateUserProfile,
+} from '@/store/redux/slices/authSlice';
+import React, { createContext, ReactNode, useContext } from 'react';
+
+/**
+ * AuthContext - Wrapper over Redux for easier component usage
+ * Maintains backward compatibility with existing code
+ */
 
 interface AuthContextType {
-  user: User | null;
+  user: UserSessionData | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  error: string | null;
   login: (credentials: LoginRequest) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
-  updateUserEmail: (email: string) => void;
+  updateUserEmail: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const AUTH_TOKEN_KEY = '@auth_token';
-const USER_DATA_KEY = '@user_data';
-
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useAppDispatch();
 
-  // Check for existing session on app start
-  useEffect(() => {
-    checkAuthState();
-  }, []);
-
-  const checkAuthState = async () => {
-    try {
-      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-      const userData = await AsyncStorage.getItem(USER_DATA_KEY);
-      
-      if (token && userData) {
-        setUser(JSON.parse(userData));
-      }
-    } catch (error) {
-      console.error('Error checking auth state:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Get state from Redux store
+  const { user, isLoading, isAuthenticated, error } = useAppSelector((state) => state.auth);
 
   const login = async (credentials: LoginRequest) => {
     try {
-      const response = await authService.login(credentials);
-      
-      const userData: User = {
-        userId: response.userId,
-        userName: response.userName,
-        token: response.token,
-      };
-
-      await AsyncStorage.setItem(AUTH_TOKEN_KEY, response.token);
-      await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
-      
-      setUser(userData);
-    } catch (error) {
-      throw error;
+      await dispatch(loginUser(credentials)).unwrap();
+    } catch (error: any) {
+      throw new Error(error || 'Login failed');
     }
   };
 
   const register = async (data: RegisterRequest) => {
     try {
-      await authService.register(data);
-      // Registration successful, user should login separately
-    } catch (error) {
-      throw error;
+      await dispatch(registerUser(data)).unwrap();
+    } catch (error: any) {
+      throw new Error(error || 'Registration failed');
     }
   };
 
   const logout = async () => {
     try {
-      await AsyncStorage.removeItem(AUTH_TOKEN_KEY);
-      await AsyncStorage.removeItem(USER_DATA_KEY);
-      setUser(null);
-    } catch (error) {
-      console.error('Error logging out:', error);
+      await dispatch(logoutUser()).unwrap();
+    } catch (error: any) {
+      console.error('Logout error:', error);
     }
   };
 
-  const updateUserEmail = (email: string) => {
-    if (user) {
-      const updatedUser = { ...user, email };
-      setUser(updatedUser);
-      AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(updatedUser));
+  const updateUserEmail = async (email: string) => {
+    try {
+      await dispatch(updateUserProfile({ email })).unwrap();
+    } catch (error: any) {
+      console.error('Update email error:', error);
     }
   };
 
@@ -93,7 +70,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isAuthenticated,
+        error,
         login,
         register,
         logout,
