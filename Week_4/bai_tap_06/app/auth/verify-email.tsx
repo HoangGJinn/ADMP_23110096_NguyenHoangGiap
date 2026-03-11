@@ -1,10 +1,10 @@
-import { CustomButton } from '@/components/auth/CustomButton';
-import { CustomInput } from '@/components/auth/CustomInput';
-import { DiscordColors, FontSizes, Spacing } from '@/constants/discord-theme';
-import api from '@/services/api';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { CustomButton } from "@/components/auth/CustomButton";
+import { CustomInput } from "@/components/auth/CustomInput";
+import { DiscordColors, FontSizes, Spacing } from "@/constants/discord-theme";
+import apiClient from "@/services/apiClient";
+import { Ionicons } from "@expo/vector-icons";
+import { router, useLocalSearchParams } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -14,13 +14,13 @@ import {
   Text,
   TouchableOpacity,
   View,
-} from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function VerifyEmailScreen() {
   const params = useLocalSearchParams<{ email?: string; userName?: string }>();
-  const [email, setEmail] = useState(params.email || '');
-  const [otp, setOtp] = useState('');
+  const [email, setEmail] = useState(params.email || "");
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; otp?: string }>({});
@@ -32,14 +32,14 @@ export default function VerifyEmailScreen() {
     const newErrors: { email?: string; otp?: string } = {};
 
     if (!email.trim()) {
-      newErrors.email = 'Vui lòng nhập email';
+      newErrors.email = "Vui lòng nhập email";
     } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email không hợp lệ';
+      newErrors.email = "Email không hợp lệ";
     }
     if (!otp.trim()) {
-      newErrors.otp = 'Vui lòng nhập mã xác thực';
+      newErrors.otp = "Vui lòng nhập mã xác thực";
     } else if (otp.length !== 6) {
-      newErrors.otp = 'Mã xác thực phải có 6 ký tự';
+      newErrors.otp = "Mã xác thực phải có 6 ký tự";
     }
 
     setErrors(newErrors);
@@ -51,15 +51,17 @@ export default function VerifyEmailScreen() {
 
     setLoading(true);
     try {
-      // Use correct endpoint (api.ts BASE_URL already includes /api/auth)
-      await api.post('/verify-account', { email, otp });
+      await apiClient.post("/auth/verify-account", { email, otp });
       Alert.alert(
-        'Thành công',
-        'Tài khoản đã được xác thực. Bạn có thể đăng nhập ngay bây giờ.',
-        [{ text: 'Đăng nhập', onPress: () => router.replace('/auth/login') }]
+        "Thành công",
+        "Tài khoản đã được xác thực. Bạn có thể đăng nhập ngay bây giờ.",
+        [{ text: "Đăng nhập", onPress: () => router.replace("/auth/login") }],
       );
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Mã xác thực không đúng hoặc đã hết hạn');
+      Alert.alert(
+        "Lỗi",
+        error.message || "Mã xác thực không đúng hoặc đã hết hạn",
+      );
     } finally {
       setLoading(false);
     }
@@ -67,17 +69,19 @@ export default function VerifyEmailScreen() {
 
   const handleResendOtp = async () => {
     if (!email.trim()) {
-      setErrors({ email: 'Vui lòng nhập email để gửi lại mã' });
+      setErrors({ email: "Vui lòng nhập email để gửi lại mã" });
       return;
     }
 
     setResending(true);
     try {
-      // Use correct endpoint (api.ts BASE_URL already includes /api/auth)
-      await api.post('/resend-otp', { email, type: 'VERIFY' });
-      Alert.alert('Thành công', 'Mã xác thực mới đã được gửi đến email của bạn');
+      await apiClient.post("/auth/resend-otp", { email, type: "VERIFY" });
+      Alert.alert(
+        "Thành công",
+        "Mã xác thực mới đã được gửi đến email của bạn",
+      );
     } catch (error: any) {
-      Alert.alert('Lỗi', error.message || 'Không thể gửi lại mã xác thực');
+      Alert.alert("Lỗi", error.message || "Không thể gửi lại mã xác thực");
     } finally {
       setResending(false);
     }
@@ -86,7 +90,7 @@ export default function VerifyEmailScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
         <ScrollView
@@ -94,21 +98,30 @@ export default function VerifyEmailScreen() {
           keyboardShouldPersistTaps="handled"
         >
           {/* Back Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={DiscordColors.textPrimary} />
+            <Ionicons
+              name="arrow-back"
+              size={24}
+              color={DiscordColors.textPrimary}
+            />
           </TouchableOpacity>
 
           {/* Header */}
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="mail-outline" size={48} color={DiscordColors.primary} />
+              <Ionicons
+                name="mail-outline"
+                size={48}
+                color={DiscordColors.primary}
+              />
             </View>
             <Text style={styles.title}>Xác thực tài khoản</Text>
             <Text style={styles.subtitle}>
-              Nhập mã xác thực đã được gửi đến email của bạn để kích hoạt tài khoản
+              Nhập mã xác thực đã được gửi đến email của bạn để kích hoạt tài
+              khoản
             </Text>
           </View>
 
@@ -159,7 +172,7 @@ export default function VerifyEmailScreen() {
               disabled={resending}
             >
               <Text style={styles.resendText}>
-                {resending ? 'Đang gửi...' : 'Gửi lại mã xác thực'}
+                {resending ? "Đang gửi..." : "Gửi lại mã xác thực"}
               </Text>
             </TouchableOpacity>
           </View>
@@ -167,7 +180,7 @@ export default function VerifyEmailScreen() {
           {/* Login Link */}
           <View style={styles.loginContainer}>
             <Text style={styles.loginText}>Đã xác thực rồi? </Text>
-            <TouchableOpacity onPress={() => router.replace('/auth/login')}>
+            <TouchableOpacity onPress={() => router.replace("/auth/login")}>
               <Text style={styles.loginLink}>Đăng nhập</Text>
             </TouchableOpacity>
           </View>
@@ -193,7 +206,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   header: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: Spacing.xxxl,
   },
   iconContainer: {
@@ -201,45 +214,45 @@ const styles = StyleSheet.create({
     height: 80,
     borderRadius: 40,
     backgroundColor: DiscordColors.backgroundDarker,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     marginBottom: Spacing.lg,
   },
   title: {
     fontSize: FontSizes.title,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: DiscordColors.textPrimary,
     marginBottom: Spacing.sm,
   },
   subtitle: {
     fontSize: FontSizes.md,
     color: DiscordColors.textSecondary,
-    textAlign: 'center',
+    textAlign: "center",
     paddingHorizontal: Spacing.md,
   },
   form: {
-    width: '100%',
+    width: "100%",
   },
   sectionLabel: {
     color: DiscordColors.textSecondary,
     fontSize: FontSizes.xs,
-    fontWeight: '600',
+    fontWeight: "600",
     letterSpacing: 0.5,
     marginBottom: Spacing.lg,
   },
   resendButton: {
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: Spacing.lg,
     padding: Spacing.md,
   },
   resendText: {
     color: DiscordColors.textLink,
     fontSize: FontSizes.md,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: Spacing.xxl,
   },
   loginText: {
@@ -249,6 +262,6 @@ const styles = StyleSheet.create({
   loginLink: {
     color: DiscordColors.textLink,
     fontSize: FontSizes.md,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
